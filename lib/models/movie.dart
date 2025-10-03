@@ -4,6 +4,7 @@ class Movie {
   final String description;
   final int duration;
   final String genre;
+  final String imageURL;
 
   Movie({
     required this.movieId,
@@ -11,6 +12,7 @@ class Movie {
     required this.description,
     required this.duration,
     required this.genre,
+    required this.imageURL,
   });
 
   factory Movie.fromJson(Map<String, dynamic> json) {
@@ -20,6 +22,18 @@ class Movie {
       description: json['description'],
       duration: json['duration'],
       genre: json['genre'],
+      imageURL: json['imageURL'] ?? "",
     );
+  }
+  Map<String, dynamic> toJson() {
+    final json = {
+      'name': name,
+      'genre': genre,
+      'duration': duration,
+      'description': description,
+      'imageURL': imageURL,
+    };
+
+    return json;
   }
 }
