@@ -1,6 +1,7 @@
 # movie_ticket_fe
 
 Frontend for Booking movie ticket
+BACKEND : https://github.com/kuokdavinci/movie-ticket-app-backend
 
 ## Getting Started
 
