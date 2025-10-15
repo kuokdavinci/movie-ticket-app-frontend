@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/movie.dart';
 import '../view_models/movie_view_model.dart';
+import '../view_models/user_view_model.dart';
 
 class AddMoviePage extends StatefulWidget {
   const AddMoviePage({super.key});
@@ -32,7 +33,8 @@ class _AddMoviePageState extends State<AddMoviePage> {
 
   @override
   Widget build(BuildContext context) {
-    final viewModel = Provider.of<MovieViewModel>(context);
+    final movieVM = Provider.of<MovieViewModel>(context);
+    final userVM = Provider.of<UserViewModel>(context, listen: false);
 
     return Scaffold(
       appBar: AppBar(
@@ -50,37 +52,32 @@ class _AddMoviePageState extends State<AddMoviePage> {
                 TextFormField(
                   controller: _nameController,
                   decoration: _inputDecoration("Name"),
-                  validator: (value) =>
-                  value!.isEmpty ? "Please enter name" : null,
+                  validator: (value) => value!.isEmpty ? "Please enter name" : null,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _descriptionController,
                   decoration: _inputDecoration("Description"),
-                  validator: (value) =>
-                  value!.isEmpty ? "Please enter description" : null,
+                  validator: (value) => value!.isEmpty ? "Please enter description" : null,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _durationController,
                   keyboardType: TextInputType.number,
                   decoration: _inputDecoration("Duration (minutes)"),
-                  validator: (value) =>
-                  value!.isEmpty ? "Please enter duration" : null,
+                  validator: (value) => value!.isEmpty ? "Please enter duration" : null,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _genreController,
                   decoration: _inputDecoration("Genre"),
-                  validator: (value) =>
-                  value!.isEmpty ? "Please enter genre" : null,
+                  validator: (value) => value!.isEmpty ? "Please enter genre" : null,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _imageURLController,
                   decoration: _inputDecoration("Image URL"),
                 ),
-                const SizedBox(height: 20),
                 const SizedBox(height: 20),
                 SizedBox(
                   width: double.infinity,
@@ -94,24 +91,31 @@ class _AddMoviePageState extends State<AddMoviePage> {
                       ),
                     ),
                     onPressed: () async {
-                      if (_formKey.currentState!.validate()) {
-                        final newMovie = Movie(
-                          movieId: 0,
-                          name: _nameController.text,
-                          description: _descriptionController.text,
-                          duration: int.tryParse(_durationController.text) ?? 0,
-                          genre: _genreController.text,
-                          imageURL: _imageURLController.text,
-                        );
+                      if (!_formKey.currentState!.validate()) return;
 
-                        await viewModel.addMovie(newMovie);
-                        Navigator.pop(context, true);
+                      final token = userVM.token;
+                      if (token == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("User not logged in")),
+                        );
+                        return;
                       }
+
+                      final newMovie = Movie(
+                        movieId: 0,
+                        name: _nameController.text,
+                        description: _descriptionController.text,
+                        duration: int.tryParse(_durationController.text) ?? 0,
+                        genre: _genreController.text,
+                        imageURL: _imageURLController.text,
+                      );
+
+                      await movieVM.addMovie(newMovie);
+                      Navigator.pop(context, true);
                     },
                     child: const Text(
                       "Add Movie",
-                      style:
-                      TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                   ),
                 )

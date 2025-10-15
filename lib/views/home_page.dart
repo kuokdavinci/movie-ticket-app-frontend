@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:movie_ticket_fe/models/movie.dart';
-import 'package:movie_ticket_fe/services/movie_service.dart';
-import 'movie_page.dart';
+import 'package:provider/provider.dart';
+import '../models/movie.dart';
+import '../view_models/movie_view_model.dart';
+import '../view_models/user_view_model.dart';
 import 'add_movie_page.dart';
+import 'movie_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -12,122 +14,205 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  late Future<List<Movie>> futureMovies;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    futureMovies = MovieService().fetchMovies();
-  }
 
-  void _refreshMovies() {
-    setState(() {
-      futureMovies = MovieService().fetchMovies();
+    // Reload app: đảm bảo fetch movies chỉ khi token đã load
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final userVM = Provider.of<UserViewModel>(context, listen: false);
+      final movieVM = Provider.of<MovieViewModel>(context, listen: false);
+
+      final hasToken = await userVM.hasToken();
+      if (hasToken) {
+        await userVM.loadCurrentUser();
+        if (userVM.token != null) {
+          movieVM.setToken(userVM.token!);
+          await movieVM.fetchMovies();
+        }
+      }
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Home", style: TextStyle(fontWeight: FontWeight.bold)),
-        centerTitle: true,
-      ),
-      body: FutureBuilder<List<Movie>>(
-        future: futureMovies,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text("Error: ${snapshot.error}"));
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text("No movies found"));
-          }
+    final movieVM = Provider.of<MovieViewModel>(context);
+    final userVM = Provider.of<UserViewModel>(context, listen: false);
 
-          final movies = snapshot.data!;
-          return GridView.builder(
-            padding: const EdgeInsets.all(12),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 4,
-              crossAxisSpacing: 10,
-              mainAxisSpacing: 10,
-              childAspectRatio: 0.55,
-            ),
-            itemCount: movies.length,
-            itemBuilder: (context, index) {
-              final movie = movies[index];
-              return GestureDetector(
-                onTap: () async {
-                  final result = await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => MoviePage(movieId: movie.movieId),
-                    ),
-                  );
-                  if (result == true) {
-                    _refreshMovies();
-                  }
-                },
-                child: Card(
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: ClipRRect(
-                          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                          child: Image.network(
-                            movie.imageURL ?? "https://via.placeholder.com/150",
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                          ),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(15.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              movie.name,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 25,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              "${movie.duration} min",
-                              style: const TextStyle(
-                                fontSize: 18,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    ],
+    return Scaffold(
+      body: Column(
+        children: [
+          // Taskbar
+          // Taskbar
+          Container(
+            color: Colors.black,
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+            child: Row(
+              children: [
+                // Nút Movies
+                TextButton(
+                  onPressed: () async {
+                    try {
+                      await movieVM.fetchMovies();
+                    } catch (e) {
+                      print("Fetch movies error: $e");
+                    }
+                  },
+                  child: const Text(
+                    "Movies",
+                    style: TextStyle(color: Colors.white, fontSize: 16),
                   ),
                 ),
-              );
-            },
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        child: const Icon(Icons.add),
-        onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const AddMoviePage()),
-          );
-          if (result == true) {
-            _refreshMovies();
-          }
-        },
+
+                // Nút Add Movie (chỉ admin mới thấy)
+                if (userVM.currentUser?.isAdmin ?? false)
+                  TextButton(
+                    onPressed: () async {
+                      final result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const AddMoviePage()),
+                      );
+                      if (result == true) {
+                        try {
+                          await movieVM.fetchMovies();
+                        } catch (e) {
+                          print("Fetch movies after add error: $e");
+                        }
+                      }
+                    },
+                    child: const Text(
+                      "Add Movie",
+                      style: TextStyle(color: Colors.white, fontSize: 16),
+                    ),
+                  ),
+
+                // Search field
+                Expanded(
+                  child: Container(
+                    margin: const EdgeInsets.only(left: 10),
+                    child: TextField(
+                      controller: _searchController,
+                      decoration: InputDecoration(
+                        hintText: "Search by name or genre...",
+                        hintStyle: const TextStyle(color: Colors.white70),
+                        filled: true,
+                        fillColor: Colors.grey[800],
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding:
+                        const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                      ),
+                      style: const TextStyle(color: Colors.white),
+                      onChanged: (value) {
+                        movieVM.searchMovies(value.trim());
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Movie Grid
+          Expanded(
+            child: movieVM.isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : movieVM.movies.isEmpty
+                ? const Center(
+              child: Text(
+                'No movies found',
+                textAlign: TextAlign.center,
+              ),
+            )
+                : GridView.builder(
+              padding: const EdgeInsets.all(12),
+              gridDelegate:
+              const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 4,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                childAspectRatio: 0.55,
+              ),
+              itemCount: movieVM.movies.length,
+              itemBuilder: (context, index) {
+                final Movie movie = movieVM.movies[index];
+                return GestureDetector(
+                  onTap: () async {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) =>
+                              MoviePage(movieId: movie.movieId)),
+                    );
+                    if (result == true) {
+                      await movieVM.fetchMovies();
+                    }
+                  },
+                  child: Card(
+                    elevation: 4,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(12)),
+                            child: Image.network(
+                              movie.imageURL ??
+                                  "https://via.placeholder.com/150",
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              errorBuilder:
+                                  (context, error, stackTrace) =>
+                                  Container(
+                                    color: Colors.grey[200],
+                                    child: const Icon(
+                                      Icons.broken_image,
+                                      size: 50,
+                                    ),
+                                  ),
+                            ),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(15.0),
+                          child: Column(
+                            crossAxisAlignment:
+                            CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                movie.name,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 25,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                "${movie.duration} min",
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
