@@ -5,6 +5,7 @@ import '../view_models/movie_view_model.dart';
 import '../view_models/user_view_model.dart';
 import 'add_movie_page.dart';
 import 'movie_page.dart';
+import 'ticket_page.dart'; // ⬅️ import thêm
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -20,7 +21,6 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
 
-    // Reload app: đảm bảo fetch movies chỉ khi token đã load
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final userVM = Provider.of<UserViewModel>(context, listen: false);
       final movieVM = Provider.of<MovieViewModel>(context, listen: false);
@@ -44,14 +44,12 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       body: Column(
         children: [
-          // Taskbar
-          // Taskbar
+          // ---------------- Taskbar ----------------
           Container(
             color: Colors.black,
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
             child: Row(
               children: [
-                // Nút Movies
                 TextButton(
                   onPressed: () async {
                     try {
@@ -66,7 +64,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
 
-                // Nút Add Movie (chỉ admin mới thấy)
+                // Nút Add Movie chỉ hiện với admin
                 if (userVM.currentUser?.isAdmin ?? false)
                   TextButton(
                     onPressed: () async {
@@ -88,7 +86,31 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
 
-                // Search field
+                TextButton(
+                  onPressed: () {
+                    final userVM = Provider.of<UserViewModel>(context, listen: false);
+                    if (userVM.token != null) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => TicketPage(token: userVM.token!),
+                        ),
+                      );
+                    } else {
+                      // Nếu chưa login hoặc chưa có token
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Vui lòng đăng nhập để xem vé')),
+                      );
+                    }
+                  },
+                  child: const Text(
+                    "Tickets",
+                    style: TextStyle(color: Colors.white, fontSize: 16),
+                  ),
+                ),
+
+
+                // ---------------- Search box ----------------
                 Expanded(
                   child: Container(
                     margin: const EdgeInsets.only(left: 10),
@@ -117,7 +139,7 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
 
-          // Movie Grid
+          // ---------------- Movie Grid ----------------
           Expanded(
             child: movieVM.isLoading
                 ? const Center(child: CircularProgressIndicator())

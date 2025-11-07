@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/movie.dart';
+import '../view_models/booking_view_model.dart';
 import '../view_models/movie_view_model.dart';
 import '../view_models/user_view_model.dart';
 import 'update_movie_page.dart';
+import 'booking_page.dart';
 
 class MoviePage extends StatelessWidget {
   final int movieId;
@@ -38,16 +40,50 @@ class MoviePage extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    movie.imageURL.isNotEmpty ? movie.imageURL : "https://via.placeholder.com/200",
-                    width: 180,
-                    height: 260,
-                    fit: BoxFit.cover,
-                  ),
+                // Poster phim + nút Đặt vé
+                Column(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.network(
+                        movie.imageURL.isNotEmpty
+                            ? movie.imageURL
+                            : "https://via.placeholder.com/200",
+                        width: 180,
+                        height: 260,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: 180,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ChangeNotifierProvider(
+                                create: (_) => BookingViewModel()..setToken(userVM.token!),
+                                builder: (context, _) => BookingPage(movieId: movie.movieId),
+                              ),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.black,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          textStyle: const TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        child: const Text("Book a ticket"),
+                      ),
+                    ),
+                  ],
                 ),
+
                 const SizedBox(width: 20),
+
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -56,11 +92,14 @@ class MoviePage extends StatelessWidget {
                           style: const TextStyle(
                               fontSize: 24, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 16),
-                      Text("Genre: ${movie.genre}", style: const TextStyle(fontSize: 16)),
-                      Text("Duration: ${movie.duration} min", style: const TextStyle(fontSize: 16)),
+                      Text("Genre: ${movie.genre}",
+                          style: const TextStyle(fontSize: 16)),
+                      Text("Duration: ${movie.duration} min",
+                          style: const TextStyle(fontSize: 16)),
                       const SizedBox(height: 8),
                       Text(movie.description,
-                          style: const TextStyle(fontSize: 14, color: Colors.grey)),
+                          style: const TextStyle(
+                              fontSize: 14, color: Colors.grey)),
                       const SizedBox(height: 50),
 
                       if (isAdmin)
@@ -82,9 +121,11 @@ class MoviePage extends StatelessWidget {
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.black,
                                   foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  padding:
+                                  const EdgeInsets.symmetric(vertical: 14),
                                   textStyle: const TextStyle(
-                                      fontSize: 16, fontWeight: FontWeight.bold),
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold),
                                 ),
                                 child: const Text("Update"),
                               ),
@@ -101,29 +142,36 @@ class MoviePage extends StatelessWidget {
                                           "Are you sure you want to delete this movie?"),
                                       actions: [
                                         TextButton(
-                                          onPressed: () => Navigator.pop(context, false),
+                                          onPressed: () =>
+                                              Navigator.pop(context, false),
                                           child: const Text("Cancel"),
                                         ),
                                         TextButton(
-                                          onPressed: () => Navigator.pop(context, true),
+                                          onPressed: () =>
+                                              Navigator.pop(context, true),
                                           child: const Text("Delete",
-                                              style: TextStyle(color: Colors.red)),
+                                              style: TextStyle(
+                                                  color: Colors.red)),
                                         ),
                                       ],
                                     ),
                                   );
 
-                                  if (confirm == true && userVM.token != null) {
-                                    await movieVM.deleteMovie(movie.movieId, userVM.token!);
+                                  if (confirm == true &&
+                                      userVM.token != null) {
+                                    await movieVM.deleteMovie(
+                                        movie.movieId, userVM.token!);
                                     Navigator.pop(context, true);
                                   }
                                 },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.black,
                                   foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  padding:
+                                  const EdgeInsets.symmetric(vertical: 14),
                                   textStyle: const TextStyle(
-                                      fontSize: 16, fontWeight: FontWeight.bold),
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold),
                                 ),
                                 child: const Text("Delete"),
                               ),
@@ -141,7 +189,8 @@ class MoviePage extends StatelessWidget {
     );
   }
 
-  Future<Movie> _fetchMovieWithToken(MovieViewModel movieVM, UserViewModel userVM) async {
+  Future<Movie> _fetchMovieWithToken(
+      MovieViewModel movieVM, UserViewModel userVM) async {
     final token = userVM.token;
     if (token == null) throw Exception("User not logged in");
     return await movieVM.fetchMovieById(movieId, token);

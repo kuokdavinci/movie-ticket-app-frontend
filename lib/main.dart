@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:movie_ticket_fe/view_models/ticket_view_model.dart';
 import 'package:provider/provider.dart';
 import 'view_models/movie_view_model.dart';
 import 'view_models/user_view_model.dart';
@@ -9,6 +10,7 @@ void main() {
   runApp(
     MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => TicketViewModel()),
         ChangeNotifierProvider(create: (_) => UserViewModel()),
         ChangeNotifierProvider(create: (_) => MovieViewModel()),
       ],
@@ -16,7 +18,6 @@ void main() {
     ),
   );
 }
-
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
