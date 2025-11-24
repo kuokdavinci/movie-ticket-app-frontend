@@ -27,14 +27,18 @@ class UserViewModel extends ChangeNotifier {
       return false;
     }
   }
+  Future<void> register(String username, String password) async {
+    try {
+      await _userService.register(username, password);
+    } catch (e) {
+      debugPrint('Register error: $e');
+      throw e;
+    }
+  }
 
   Future<bool> hasToken() async {
-    final storedToken = await _secureStorage.read(key: 'jwt_token');
-    if (storedToken != null) {
-      _token = storedToken;
-      return true;
-    }
-    return false;
+    final stored = await _secureStorage.read(key: 'jwt_token');
+    return stored != null;
   }
 
   Future<void> loadCurrentUser() async {

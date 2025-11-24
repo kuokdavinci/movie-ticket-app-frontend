@@ -4,8 +4,9 @@ import '../models/movie.dart';
 import '../view_models/movie_view_model.dart';
 import '../view_models/user_view_model.dart';
 import 'add_movie_page.dart';
+import 'login_page.dart';
 import 'movie_page.dart';
-import 'ticket_page.dart'; // ⬅️ import thêm
+import 'ticket_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -26,12 +27,10 @@ class _HomePageState extends State<HomePage> {
       final movieVM = Provider.of<MovieViewModel>(context, listen: false);
 
       final hasToken = await userVM.hasToken();
-      if (hasToken) {
+      if (hasToken && userVM.token != null) {
         await userVM.loadCurrentUser();
-        if (userVM.token != null) {
-          movieVM.setToken(userVM.token!);
-          await movieVM.fetchMovies();
-        }
+        movieVM.setToken(userVM.token!);
+        await movieVM.fetchMovies();
       }
     });
   }
@@ -44,12 +43,12 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       body: Column(
         children: [
-          // ---------------- Taskbar ----------------
           Container(
             color: Colors.black,
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
             child: Row(
               children: [
+                // Button Movies
                 TextButton(
                   onPressed: () async {
                     try {
@@ -64,7 +63,6 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
 
-                // Nút Add Movie chỉ hiện với admin
                 if (userVM.currentUser?.isAdmin ?? false)
                   TextButton(
                     onPressed: () async {
@@ -73,11 +71,7 @@ class _HomePageState extends State<HomePage> {
                         MaterialPageRoute(builder: (_) => const AddMoviePage()),
                       );
                       if (result == true) {
-                        try {
-                          await movieVM.fetchMovies();
-                        } catch (e) {
-                          print("Fetch movies after add error: $e");
-                        }
+                        await movieVM.fetchMovies();
                       }
                     },
                     child: const Text(
@@ -85,21 +79,14 @@ class _HomePageState extends State<HomePage> {
                       style: TextStyle(color: Colors.white, fontSize: 16),
                     ),
                   ),
-
                 TextButton(
                   onPressed: () {
-                    final userVM = Provider.of<UserViewModel>(context, listen: false);
                     if (userVM.token != null) {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (_) => TicketPage(token: userVM.token!),
                         ),
-                      );
-                    } else {
-                      // Nếu chưa login hoặc chưa có token
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Vui lòng đăng nhập để xem vé')),
                       );
                     }
                   },
@@ -109,8 +96,6 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
 
-
-                // ---------------- Search box ----------------
                 Expanded(
                   child: Container(
                     margin: const EdgeInsets.only(left: 10),
@@ -125,21 +110,52 @@ class _HomePageState extends State<HomePage> {
                           borderRadius: BorderRadius.circular(8),
                           borderSide: BorderSide.none,
                         ),
-                        contentPadding:
-                        const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
                       ),
                       style: const TextStyle(color: Colors.white),
-                      onChanged: (value) {
-                        movieVM.searchMovies(value.trim());
-                      },
+                      onChanged: (value) => movieVM.searchMovies(value.trim()),
                     ),
                   ),
                 ),
+
+                TextButton(
+                  onPressed: () async {
+                    bool? confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text("Confirm Logout"),
+                        content: const Text("Are you sure you want to logout?"),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(false),
+                            style: TextButton.styleFrom(foregroundColor: Colors.black),
+                            child: const Text("No"),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(true),
+                            style: TextButton.styleFrom(foregroundColor: Colors.black),
+                            child: const Text("Yes"),
+                          ),
+                        ],
+                      ),
+                    );
+
+                    if (confirm == true) {
+                      await userVM.logout();
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(builder: (_) => const LoginPage()),
+                            (route) => false,
+                      );
+                    }
+                  },
+                  child: const Icon(
+                    Icons.logout,
+                    color: Colors.white,
+                  ),
+                )
               ],
             ),
           ),
-
-          // ---------------- Movie Grid ----------------
           Expanded(
             child: movieVM.isLoading
                 ? const Center(child: CircularProgressIndicator())

@@ -99,9 +99,11 @@ class _TicketPageState extends State<TicketPage> {
                 actions: [
                   TextButton(
                       onPressed: () => Navigator.pop(context, false),
+                      style: TextButton.styleFrom(foregroundColor: Colors.black),
                       child: const Text('Cancel')),
                   TextButton(
                       onPressed: () => Navigator.pop(context, true),
+                      style: TextButton.styleFrom(foregroundColor: Colors.black),
                       child: const Text('Yes')),
                 ],
               ),
