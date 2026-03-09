@@ -9,7 +9,6 @@ class TicketViewModel extends ChangeNotifier {
   bool isLoading = false;
   bool isCancelling = false;
 
-  /// Lấy danh sách vé của user hiện tại
   Future<void> fetchTickets(String token) async {
     isLoading = true;
     notifyListeners();
@@ -23,7 +22,6 @@ class TicketViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Hủy vé theo bookingId
   Future<void> cancelTicket(int bookingId, String token) async {
     isCancelling = true;
     notifyListeners();

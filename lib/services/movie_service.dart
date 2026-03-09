@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:movie_ticket_fe/config/api_config.dart';
 import 'package:movie_ticket_fe/models/movie.dart';
 
 class MovieService {
-  static const String baseUrl = "http://localhost:8080/api";
+  static const String baseUrl = ApiConfig.baseUrl;
 
 
   Future<List<Movie>> fetchMovies(String token) async {

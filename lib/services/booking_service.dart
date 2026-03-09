@@ -1,11 +1,12 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:movie_ticket_fe/config/api_config.dart';
 import '../models/showtime.dart';
 import '../models/seat.dart';
 import '../models/booking.dart';
 
 class BookingService {
-  final String baseUrl = "http://localhost:8080/api";
+  final String baseUrl = ApiConfig.baseUrl;
 
   // --------------------- Lấy danh sách suất chiếu ---------------------
   Future<List<Showtime>> fetchShowtimes(int movieId, String token) async {
